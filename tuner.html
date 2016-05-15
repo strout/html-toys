@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset=utf8>
+    </head>
+    <body>
+        <p><input id=steps size=3> half-steps above A4</p>
+        <div id=result></div>
+        <canvas width=1024 height=256 id=freqs></canvas>
+        <script>
+         var result = document.getElementById("result");
+         var steps = document.getElementById("steps");
+         var drawCtx = document.getElementById("freqs").getContext("2d");
+         drawCtx.fillStyle = '#000';
+
+         var hz = 440;
+         var halfStep = Math.pow(2, 1.0/12);
+
+         function err(e) {
+             document.body.textContent = e;
+         }
+
+         window.onerror = err;
+
+         steps.oninput = function() {
+             var val = parseInt(steps.value, 10);
+             var sgn = Math.sign(val);
+             val = Math.abs(val);
+             hz = 440;
+             for (var i = 0; i < val; i++) {
+                 hz = sgn > 0 ? hz * halfStep : hz / halfStep;
+             }
+         }
+
+         var offset = 0;
+
+         var AudioContext = window.AudioContext || window.webkitAudioContext;
+         var ctx = new AudioContext();
+
+         var capture = ctx.createScriptProcessor(1024, 1, 0);
+         var audio = new Float32Array(1024);
+         capture.onaudioprocess = function(e) {
+             e.inputBuffer.copyFromChannel(audio, 0);
+             offset = (offset + 1024) % ctx.sampleRate;
+         }
+
+         function draw() {
+             result.textContent = hz + "Hz";
+             drawCtx.clearRect(0, 0, 1024, 256);
+             var w = Math.floor(ctx.sampleRate % hz) * hz;
+             for (var i = 0; i < 1024; i++) {
+                 drawCtx.fillRect((i + offset) % w, 256 * audio[i] + 128, 1, 1);
+             }
+             requestAnimationFrame(draw);
+         }
+         var src;
+         navigator.mediaDevices.getUserMedia({audio: true})
+                  .then(function(mic) {
+                      src = ctx.createMediaStreamSource(mic);
+                      src.connect(capture);
+                      draw();
+                  })
+                  .catch(err)
+        </script>
+    </body>
+</html>

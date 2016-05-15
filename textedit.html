@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset=utf8>
+        <meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+        <style>
+         * { box-sizing: border-box }
+         body { display: flex; flex-direction: column; height: 100vh; margin: 0 }
+         textarea, #t { width: 100% }
+         textarea { display: block; flex-grow: 1 }
+         #l { display: none }
+         .b { border: 1px solid #000; color: #000; text-decoration: none; cursor: default }
+        </style>
+        <script>
+         function main() {
+             var s = document.querySelector('#s'),
+                 t = document.querySelector('#t'),
+                 n = document.querySelector('#n'),
+                 ed = document.querySelector('textarea');
+             function update() {
+                 if (s.href) { URL.revokeObjectURL(s.href); }
+                 s.href = URL.createObjectURL(new Blob([ed.value]));
+                 s.download=t.value;
+             };
+             ed.oninput = update;
+             t.oninput=update;
+             l.onchange = function() {
+                 if (l.files.length) {
+                     var r = new FileReader();
+                     r.onload = function() {
+                         t.value = l.files[0].name;
+                         ed.value = r.result;
+                         update();
+                     };
+                     r.readAsText(l.files[0]);
+                 }
+             }
+             function newFile() {
+                 t.value = 'untitled.txt';
+                 ed.value = '';
+                 update();
+             }
+             n.onclick = newFile;
+             newFile();
+         }
+        </script>
+    </head>
+    <body onload="main()">
+        <input id=t value=untitled.txt>
+        <textarea></textarea>
+        <nav>
+            <a id=s class=b>Save</a>
+            <label class=b>Load<input id=l type=file></label>
+            <span id=n class=b>New</span>
+        </nav>
+    </body>
+</html>
