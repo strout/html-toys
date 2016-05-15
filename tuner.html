@@ -14,7 +14,6 @@
          drawCtx.fillStyle = '#000';
 
          var hz = 440;
-         var halfStep = Math.pow(2, 1.0/12);
 
          function err(e) {
              document.body.textContent = e;
@@ -23,13 +22,8 @@
          window.onerror = err;
 
          steps.oninput = function() {
-             var val = parseInt(steps.value, 10);
-             var sgn = Math.sign(val);
-             val = Math.abs(val);
-             hz = 440;
-             for (var i = 0; i < val; i++) {
-                 hz = sgn > 0 ? hz * halfStep : hz / halfStep;
-             }
+             var val = parseInt(steps.value, 10) || 0;
+             hz = 440 * Math.pow(2, val / 12);
          }
 
          var offset = 0;
@@ -37,30 +31,29 @@
          var AudioContext = window.AudioContext || window.webkitAudioContext;
          var ctx = new AudioContext();
 
-         var capture = ctx.createScriptProcessor(1024, 1, 0);
+         var capture = ctx.createAnalyser();
+         capture.fftSize = 1024;
          var audio = new Float32Array(1024);
-         capture.onaudioprocess = function(e) {
-             e.inputBuffer.copyFromChannel(audio, 0);
-             offset = (offset + 1024) % ctx.sampleRate;
-         }
 
-         function draw() {
+         function draw(t) {
              result.textContent = hz + "Hz";
+             var t = ctx.currentTime;
+             capture.getFloatTimeDomainData(audio);
              drawCtx.clearRect(0, 0, 1024, 256);
-             var w = Math.floor(ctx.sampleRate % hz) * hz;
-             for (var i = 0; i < 1024; i++) {
-                 drawCtx.fillRect((i + offset) % w, 256 * audio[i] + 128, 1, 1);
+             for (var i = 0; i < audio.length; i++) {
+                 drawCtx.fillRect((i + ctx.sampleRate * (ctx.currentTime % (1 / hz))) % 1024, 256 * audio[i] + 128, 1, 1);
              }
              requestAnimationFrame(draw);
          }
          var src;
-         navigator.mediaDevices.getUserMedia({audio: true})
-                  .then(function(mic) {
+         navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+         navigator.getUserMedia({audio: true},
+                  function(mic) {
                       src = ctx.createMediaStreamSource(mic);
                       src.connect(capture);
                       draw();
-                  })
-                  .catch(err)
+                  },
+                  err);
         </script>
     </body>
 </html>
